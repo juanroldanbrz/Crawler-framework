@@ -1,25 +1,22 @@
 package com.yamajun.crawler.crawler.domain;
 
+import com.yamajun.crawler.crawler.domain.model.CrawlerDomain;
 import com.yamajun.crawler.exception.DuplicatedCrawlerException;
-import com.yamajun.crawler.crawler.domain.model.Crawler;
 import com.yamajun.crawler.crawler.domain.model.Extraction;
 import com.yamajun.crawler.crawler.domain.model.UrlData;
 import com.yamajun.crawler.crawler.domain.model.UrlStatus;
-import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import org.bson.types.ObjectId;
 import org.jongo.Jongo;
 import org.jongo.MongoCollection;
-import org.springframework.beans.factory.annotation.Autowired;
 
 public final class CrawlerRepositoryImpl implements CrawlerRepository {
 
   private final MongoCollection urlDataCollection;
   private final MongoCollection crawlerCollection;
 
-  @Autowired
   public CrawlerRepositoryImpl(Jongo jongo, String crawlerName){
     this.urlDataCollection = jongo.getCollection(crawlerName + "_url_data");
     this.crawlerCollection = jongo.getCollection(crawlerName + "_crawler");
@@ -62,29 +59,38 @@ public final class CrawlerRepositoryImpl implements CrawlerRepository {
   }
 
   @Override
-  public Crawler findCrawlerByName(String name) {
-    return crawlerCollection.findOne("{name : #}", name).as(Crawler.class);
+  public CrawlerDomain findCrawlerByName(String name) {
+    return crawlerCollection.findOne("{name : #}", name).as(CrawlerDomain.class);
   }
 
   @Override
-  public Crawler addCrawler(Crawler crawler) {
-    if(findCrawlerByName(crawler.getName()) != null){
-      throw new DuplicatedCrawlerException("Trying to add duplicate crawler: " + crawler.getName());
+  public CrawlerDomain addCrawler(CrawlerDomain crawlerDomain) {
+    if(findCrawlerByName(crawlerDomain.getName()) != null){
+      throw new DuplicatedCrawlerException("Trying to add duplicate crawlerDomain: " + crawlerDomain.getName());
 
     }
 
-    crawlerCollection.save(crawler);
-    return crawler;
+    crawlerCollection.save(crawlerDomain);
+    return crawlerDomain;
   }
 
   @Override
-  public Crawler updateCrawler(Crawler crawler) {
-    var lastUpdatedAt = Instant.ofEpochMilli(crawler.getUpdatedAt().toEpochMilli());
-    crawler.setUpdatedAt(Instant.now());
-    crawlerCollection.update("{ name :  #, updatedAt : #}", crawler.getName(), lastUpdatedAt).with("{ $set: "
+  public CrawlerDomain updateCrawler(CrawlerDomain crawlerDomain) {
+    var lastUpdatedAt = Instant.ofEpochMilli(crawlerDomain.getUpdatedAt().toEpochMilli());
+    crawlerDomain.setUpdatedAt(Instant.now());
+    crawlerCollection.update("{ name :  #, updatedAt : #}", crawlerDomain.getName(), lastUpdatedAt).with("{ $set: "
         + "{name: #, pagesCrawled: #, numOfExtractions : #, numOfExecutions: #, status : #, lastUpdatedAt : #}"
-        + "}", crawler.getName(), crawler.getPagesCrawled(), crawler.getNumOfExtractions(), crawler.getNumOfExecutions(), crawler.getStatus(), crawler.getUpdatedAt());
-    return crawler;
+        + "}", crawlerDomain.getName(), crawlerDomain.getPagesCrawled(), crawlerDomain.getNumOfExtractions(), crawlerDomain
+        .getNumOfExecutions(), crawlerDomain.getStatus(), crawlerDomain.getUpdatedAt());
+    return crawlerDomain;
+  }
+
+  @Override
+  public List<CrawlerDomain> findAllCrawler() {
+    var it = crawlerCollection.find("{}, {extractions : -1}").as(CrawlerDomain.class).iterator();
+    var toReturn = new ArrayList<CrawlerDomain>();
+    it.forEachRemaining(toReturn::add);
+    return toReturn;
   }
 
   @Override

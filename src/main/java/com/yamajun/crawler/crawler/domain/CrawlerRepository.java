@@ -1,6 +1,7 @@
 package com.yamajun.crawler.crawler.domain;
 
-import com.yamajun.crawler.crawler.domain.model.Crawler;
+import com.yamajun.crawler.crawler.CrawlerConfig;
+import com.yamajun.crawler.crawler.domain.model.CrawlerDomain;
 import com.yamajun.crawler.crawler.domain.model.Extraction;
 import com.yamajun.crawler.crawler.domain.model.UrlData;
 import java.util.List;
@@ -13,14 +14,17 @@ public interface CrawlerRepository {
 
   List<UrlData> findNotVisitedPages(int numberOfPages);
 
-  Crawler findCrawlerByName(String name);
+  CrawlerDomain findCrawlerByName(String name);
 
-  Crawler addCrawler(Crawler crawler);
+  CrawlerDomain addCrawler(CrawlerDomain crawlerDomain);
 
   UrlData findUrlDataById(String id);
 
-  Crawler updateCrawler(Crawler crawler);
+  CrawlerDomain updateCrawler(CrawlerDomain crawlerDomain);
+
+  List<CrawlerDomain> findAllCrawler();
 
   void addExtraction(String crawlerId, Extraction extraction);
 
+  void updateConfiguration(String crawlerId, CrawlerConfig crawlerConfig);
 }

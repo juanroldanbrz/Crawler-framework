@@ -1,19 +1,18 @@
-package com.yamajun.crawler.crawler.domain.model;
+package com.yamajun.crawler.experimental;
 
-import com.fasterxml.jackson.annotation.JsonFormat;
-import java.sql.Timestamp;
+import com.yamajun.crawler.crawler.CrawlerConfig;
+import com.yamajun.crawler.crawler.domain.model.CrawlerStatus;
+import com.yamajun.crawler.crawler.domain.model.Extraction;
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 import lombok.Getter;
 import lombok.Setter;
-import org.jongo.marshall.jackson.oid.MongoId;
 import org.jongo.marshall.jackson.oid.MongoObjectId;
 
 @Getter
 @Setter
-public class Crawler {
+public class CrawlerDefinition {
 
   @MongoObjectId
   private String _id;
@@ -27,6 +26,8 @@ public class Crawler {
   private CrawlerStatus status;
 
   private List<Extraction> extractions = new ArrayList<>();
+
+  private CrawlerConfig crawlerConfig;
 
   private Instant createdAt;
   private Instant updatedAt;

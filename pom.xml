@@ -3,12 +3,12 @@
   xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
-  <groupId>com.yamajun.crawler</groupId>
-  <artifactId>crawler-framework</artifactId>
+  <groupId>com.yamajun.crawlerDomain</groupId>
+  <artifactId>crawlerDomain-framework</artifactId>
   <version>0.0.1-SNAPSHOT</version>
   <packaging>jar</packaging>
 
-  <name>crawler-framework</name>
+  <name>crawlerDomain-framework</name>
   <description>Framework for web crawling</description>
 
   <parent>
@@ -66,10 +66,24 @@
     </dependency>
 
     <dependency>
+      <groupId>org.codehaus.groovy</groupId>
+      <artifactId>groovy-all</artifactId>
+      <version>2.5.2</version>
+      <type>pom</type>
+    </dependency>
+
+    <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-test</artifactId>
       <scope>test</scope>
     </dependency>
+
+    <dependency>
+      <groupId>io.springfox</groupId>
+      <artifactId>springfox-swagger2</artifactId>
+      <version>2.9.2</version>
+    </dependency>
+
   </dependencies>
 
   <build>
