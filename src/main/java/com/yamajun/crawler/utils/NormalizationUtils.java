@@ -6,11 +6,11 @@ import java.net.URL;
 public class NormalizationUtils {
 
   public static String normalizeUrl(String url){
-    var attempNormalize = Try.of(() -> new URL(url));
-    if(attempNormalize.isFailure()){
+    var attemptNormalize = Try.of(() -> new URL(url));
+    if(attemptNormalize.isFailure()){
       return null;
     } else {
-      var urlWrap = attempNormalize.get();
+      var urlWrap = attemptNormalize.get();
       return urlWrap.getProtocol() + "://" + urlWrap.getHost() + urlWrap.getFile();
     }
   }

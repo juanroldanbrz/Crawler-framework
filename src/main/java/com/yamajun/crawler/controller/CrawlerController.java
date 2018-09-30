@@ -1,7 +1,7 @@
 package com.yamajun.crawler.controller;
 
-import com.yamajun.crawler.crawler.domain.model.CrawlerDomain;
-import com.yamajun.crawler.manager.CrawlerService;
+import com.yamajun.crawler.model.Crawler;
+import com.yamajun.crawler.service.crawler.CrawlerService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -16,7 +16,7 @@ public class CrawlerController {
   private CrawlerService crawlerManager;
 
   @PostMapping("")
-  public CrawlerDomain createCrawler(@RequestBody CrawlerDomain crawlerDomain){
-    return crawlerManager.registerCrawler(crawlerDomain);
+  public Crawler createCrawler(@RequestBody Crawler crawlerDomain) {
+    return crawlerManager.addAndStart(crawlerDomain);
   }
 }

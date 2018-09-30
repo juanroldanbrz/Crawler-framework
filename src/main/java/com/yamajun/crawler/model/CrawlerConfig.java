@@ -1,4 +1,4 @@
-package com.yamajun.crawler.crawler;
+package com.yamajun.crawler.model;
 
 import java.time.Instant;
 import java.util.List;
@@ -10,11 +10,6 @@ import org.jongo.marshall.jackson.oid.MongoObjectId;
 @Getter
 @Setter
 public class CrawlerConfig {
-
-  @MongoObjectId
-  private String _id;
-
-  private String crawlerName;
 
   private String domainName;
   private String entryPointUrl;
