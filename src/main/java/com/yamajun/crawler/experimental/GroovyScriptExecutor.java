@@ -7,7 +7,14 @@ import org.jsoup.nodes.Document;
 public class GroovyScriptExecutor {
 
   private static final String SCRIPT_TEMPLATE_EXTRACTION = "import org.jsoup.Jsoup;"
-      + "import org.jsoup.nodes.Document;%s;return extractData(document);";
+      + "import com.jayway.jsonpath.JsonPath;\n"
+      + "import groovy.json.JsonSlurper;\n"
+      + "import org.jsoup.Jsoup;\n"
+      + "import org.jsoup.nodes.Document;\n"
+      + "import org.springframework.http.HttpEntity;\n"
+      + "import org.springframework.http.HttpHeaders;\n"
+      + "import org.springframework.http.HttpMethod;\n"
+      + "import org.springframework.web.client.RestTemplate;\n;%s;return extractData(document);";
 
   private static final String SCRIPT_TEMPLATE_DECISION = "import org.jsoup.Jsoup;"
       + "import org.jsoup.nodes.Document;%s;return decideIfCrawl(document);";

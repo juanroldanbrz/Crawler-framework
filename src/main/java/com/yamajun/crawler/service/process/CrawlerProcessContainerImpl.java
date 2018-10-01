@@ -3,8 +3,10 @@ package com.yamajun.crawler.service.process;
 import com.yamajun.crawler.process.CrawlerProcess;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
+@Slf4j
 @Component
 public class CrawlerProcessContainerImpl implements CrawlerProcessContainer {
 

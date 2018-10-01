@@ -4,12 +4,14 @@ import com.yamajun.crawler.model.UrlData;
 import com.yamajun.crawler.model.status.UrlStatus;
 import java.util.ArrayList;
 import java.util.List;
+import lombok.extern.slf4j.Slf4j;
 import org.bson.types.ObjectId;
 import org.jongo.Jongo;
 import org.jongo.MongoCollection;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
+@Slf4j
 @Repository
 public class UrlDataRepositoryImpl implements UrlDataRepository{
 
@@ -27,7 +29,11 @@ public class UrlDataRepositoryImpl implements UrlDataRepository{
 
   @Override
   public UrlData add(UrlData urlData) {
-    collection.save(urlData);
+    if(collection.findOne("{url:#}", urlData.getUrl()).as(UrlData.class) == null){
+      collection.save(urlData);
+    } else {
+      log.debug("Not saving duplicated url. <url: {}>", urlData.getUrl());
+    }
     return urlData;
   }
 

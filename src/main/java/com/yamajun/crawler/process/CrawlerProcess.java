@@ -67,22 +67,26 @@ public class CrawlerProcess implements CrawlerProcessSpec {
 
   @Override
   public void init() {
+    log.info("Initializing crawler process. <_id:{}>", attachedCrawler.get_id());
     loadCrawlerStats(attachedCrawler.getStats());
     executor = Executors.newFixedThreadPool(attachedCrawler.getConfig().getNumOfThreads());
     if(urlDataRepository.findNotVisitedPages(attachedCrawler.get_id(), 1).isEmpty()){
       urlDataRepository.add(UrlData.of(attachedCrawler.getConfig().getEntryPointUrl(), attachedCrawler.get_id()));
     }
     scriptExecutor = new GroovyScriptExecutor();
+    log.info("Initialized crawler process. <_id:{}>", attachedCrawler.get_id());
   }
 
   @Override
   public void startCrawler() {
-    if (getStatus() != CrawlerStatus.STARTED) {
+    log.info("Starting crawler process. <_id:{}>", attachedCrawler.get_id());
+    if (getStatus() != CrawlerStatus.FINISHED) {
       keepExecution.set(true);
       changeCrawlerStatus(CrawlerStatus.STARTED);
       currentStats.incNumOfExecutions();
       crawlerLoop();
     }
+    log.info("Finished crawler process. <_id:{}>", attachedCrawler.get_id());
   }
 
   @Override
@@ -162,7 +166,7 @@ public class CrawlerProcess implements CrawlerProcessSpec {
               var extractionDataMap = extractData(document, extractionScript);
               var extraction = UrlExtraction.of(crawlerId, targetUrl, extractionDataMap);
               urlExtractionRepository.addExtraction(extraction);
-              currentStats.getNumOfExtractions();
+              currentStats.incNumOfExtractions();
             }
 
             urlDataRepository.updateStatus(urlDataId, UrlStatus.CRAWLED);
@@ -180,10 +184,10 @@ public class CrawlerProcess implements CrawlerProcessSpec {
       } catch (InterruptedException e) {
         log.info("Error executing threads in the crawler. <id: {}> " + attachedCrawler.get_id(), e);
       }
+      crawlerProcessRepository.updateStats(crawlerId, currentStats);
       linksToCrawlUrlData = urlDataRepository.findNotVisitedPages(crawlerId, numberOfThreads);
     }
 
-    crawlerProcessRepository.updateStats(crawlerId, currentStats);
     changeCrawlerStatus(CrawlerStatus.FINISHED);
   }
 

@@ -15,6 +15,7 @@ public class CrawlerConfig {
   private String domainName;
   private String entryPointUrl;
   private int numOfThreads = 1;
+  private long threadsDelayMs = 0;
 
   private List<String> whiteListContains;
 
