@@ -1,5 +1,6 @@
 package com.yamajun.crawler.model;
 
+import com.yamajun.crawler.experimental.GroovyScript;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -16,11 +17,9 @@ public class CrawlerConfig {
   private int numOfThreads = 1;
 
   private List<String> whiteListContains;
-  private Map<String, String> xpathExtractionRules;
 
-  //This xpath will decide if the document can be extracted
-  private String magicXpath;
-
+  private GroovyScript decisionScript;
+  private GroovyScript extractionScript;
   private Instant lastModification;
 
 }

@@ -2,6 +2,8 @@ package com.yamajun.crawler.process;
 
 import static java.util.stream.Collectors.toList;
 
+import com.yamajun.crawler.experimental.GroovyScript;
+import com.yamajun.crawler.experimental.GroovyScriptExecutor;
 import com.yamajun.crawler.model.Crawler;
 import com.yamajun.crawler.model.CrawlerStats;
 import com.yamajun.crawler.model.UrlData;
@@ -15,6 +17,7 @@ import com.yamajun.crawler.repository.UrlDataRepository;
 import com.yamajun.crawler.repository.UrlExtractionRepository;
 import com.yamajun.crawler.utils.NormalizationUtils;
 import com.yamajun.crawler.xsoup.Xsoup;
+import groovy.lang.GroovyShell;
 import io.vavr.control.Try;
 import java.io.IOException;
 import java.net.URL;
@@ -43,6 +46,8 @@ public class CrawlerProcess implements CrawlerProcessSpec {
   private final UrlExtractionRepository urlExtractionRepository;
   private final CrawlerProcessRepository crawlerProcessRepository;
 
+  private GroovyScriptExecutor scriptExecutor;
+
   private final SynchronizedCrawlerStats currentStats;
 
   private final AtomicBoolean keepExecution;
@@ -67,6 +72,7 @@ public class CrawlerProcess implements CrawlerProcessSpec {
     if(urlDataRepository.findNotVisitedPages(attachedCrawler.get_id(), 1).isEmpty()){
       urlDataRepository.add(UrlData.of(attachedCrawler.getConfig().getEntryPointUrl(), attachedCrawler.get_id()));
     }
+    scriptExecutor = new GroovyScriptExecutor();
   }
 
   @Override
@@ -106,20 +112,13 @@ public class CrawlerProcess implements CrawlerProcessSpec {
   }
 
   @Override
-  public Map<String, Object> extractData(Document document, Map<String, String> xpathRules) {
-    var extractionMap = new HashMap<String, Object>();
-    for (var operation : xpathRules.entrySet()) {
-      var resultKey = operation.getKey();
-      var operationXpath = operation.getKey();
-      extractionMap.put(resultKey, evaluateXpath(operationXpath, document));
-    }
-
-    return extractionMap;
+  public Map<String, Object> extractData(Document document, GroovyScript script) {
+    return (Map<String, Object>) scriptExecutor.execute(script, document);
   }
 
   @Override
-  public boolean canExtractData(Document document, String xpath) {
-    return evaluateXpath(xpath, document) != null;
+  public boolean canExtractData(Document document, GroovyScript script) {
+    return (boolean) scriptExecutor.execute(script, document);
   }
 
   @Async
@@ -128,8 +127,8 @@ public class CrawlerProcess implements CrawlerProcessSpec {
     var numberOfThreads = attachedCrawler.getConfig().getNumOfThreads();
     var crawlerId = attachedCrawler.get_id();
     var whiteList = attachedCrawler.getConfig().getWhiteListContains();
-    var extractionRules = attachedCrawler.getConfig().getXpathExtractionRules();
-    var canExtractUrlXpath = attachedCrawler.getConfig().getMagicXpath();
+    var extractionScript = attachedCrawler.getConfig().getExtractionScript();
+    var decisionScript = attachedCrawler.getConfig().getDecisionScript();
 
     var linksToCrawlUrlData = urlDataRepository.findNotVisitedPages(crawlerId, numberOfThreads);
 
@@ -159,8 +158,8 @@ public class CrawlerProcess implements CrawlerProcessSpec {
                 urlDataRepository.add(newUrlData);
             }
 
-            if (canExtractData(document, canExtractUrlXpath)) {
-              var extractionDataMap = extractData(document, extractionRules);
+            if (canExtractData(document, decisionScript)) {
+              var extractionDataMap = extractData(document, extractionScript);
               var extraction = UrlExtraction.of(crawlerId, targetUrl, extractionDataMap);
               urlExtractionRepository.addExtraction(extraction);
               currentStats.getNumOfExtractions();
