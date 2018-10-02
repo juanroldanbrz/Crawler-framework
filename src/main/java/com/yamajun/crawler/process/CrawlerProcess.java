@@ -36,49 +36,46 @@ import org.jsoup.nodes.Document;
 import org.springframework.scheduling.annotation.Async;
 
 @Slf4j
-public class CrawlerProcess implements CrawlerProcessSpec {
+public abstract class CrawlerProcess implements CrawlerProcessSpec {
 
-  private final Crawler attachedCrawler;
+  protected final Crawler attachedCrawler;
 
-  private ExecutorService executor;
+  protected final ExecutorService executor;
 
-  private final UrlDataRepository urlDataRepository;
-  private final UrlExtractionRepository urlExtractionRepository;
-  private final CrawlerProcessRepository crawlerProcessRepository;
+  protected final UrlDataRepository urlDataRepository;
+  protected final UrlExtractionRepository urlExtractionRepository;
+  protected final CrawlerProcessRepository crawlerProcessRepository;
 
-  private GroovyScriptExecutor scriptExecutor;
+  protected final GroovyScriptExecutor scriptExecutor;
 
-  private final SynchronizedCrawlerStats currentStats;
+  protected final SynchronizedCrawlerStats currentStats;
 
-  private final AtomicBoolean keepExecution;
+  protected final AtomicBoolean keepExecution;
 
   CrawlerProcess(Crawler attachedCrawler,
       UrlDataRepository urlDataRepository,
       UrlExtractionRepository urlExtractionRepository,
       CrawlerProcessRepository crawlerProcessRepository) {
     this.attachedCrawler = attachedCrawler;
+    executor = Executors.newFixedThreadPool(attachedCrawler.getConfig().getNumOfThreads());
     this.urlDataRepository = urlDataRepository;
     this.urlExtractionRepository = urlExtractionRepository;
     this.crawlerProcessRepository = crawlerProcessRepository;
     this.currentStats = new SynchronizedCrawlerStats();
 
+    scriptExecutor = new GroovyScriptExecutor();
+    loadCrawlerStats(attachedCrawler.getStats());
     keepExecution = new AtomicBoolean(false);
   }
 
   @Override
   public void init() {
     log.info("Initializing crawler process. <_id:{}>", attachedCrawler.get_id());
-    loadCrawlerStats(attachedCrawler.getStats());
-    executor = Executors.newFixedThreadPool(attachedCrawler.getConfig().getNumOfThreads());
-    if(urlDataRepository.findNotVisitedPages(attachedCrawler.get_id(), 1).isEmpty()){
-      urlDataRepository.add(UrlData.of(attachedCrawler.getConfig().getEntryPointUrl(), attachedCrawler.get_id()));
-    }
-    scriptExecutor = new GroovyScriptExecutor();
     log.info("Initialized crawler process. <_id:{}>", attachedCrawler.get_id());
   }
 
   @Override
-  public void startCrawler() {
+  public final void startCrawler() {
     log.info("Starting crawler process. <_id:{}>", attachedCrawler.get_id());
     if (getStatus() != CrawlerStatus.FINISHED) {
       keepExecution.set(true);
@@ -90,7 +87,7 @@ public class CrawlerProcess implements CrawlerProcessSpec {
   }
 
   @Override
-  public void stopCrawler() {
+  public final void stopCrawler() {
     keepExecution.set(false);
     changeCrawlerStatus(CrawlerStatus.STOPPED);
   }
@@ -105,7 +102,7 @@ public class CrawlerProcess implements CrawlerProcessSpec {
   }
 
   @Override
-  public List<String> extractUrls(Document document) {
+  public final List<String> extractUrls(Document document) {
     var elements = document.select("a");
     var urlList = new ArrayList<String>();
     for (var element : elements) {
@@ -116,106 +113,42 @@ public class CrawlerProcess implements CrawlerProcessSpec {
   }
 
   @Override
-  public Map<String, Object> extractData(Document document, GroovyScript script) {
+  public final Map<String, Object> extractData(Document document, GroovyScript script) {
     return (Map<String, Object>) scriptExecutor.execute(script, document);
   }
 
   @Override
-  public boolean canExtractData(Document document, GroovyScript script) {
+  public final boolean canExtractData(Document document, GroovyScript script) {
     return (boolean) scriptExecutor.execute(script, document);
   }
 
-  @Async
-  @Override
-  public void crawlerLoop() {
-    var numberOfThreads = attachedCrawler.getConfig().getNumOfThreads();
-    var crawlerId = attachedCrawler.get_id();
-    var whiteList = attachedCrawler.getConfig().getWhiteListContains();
-    var extractionScript = attachedCrawler.getConfig().getExtractionScript();
-    var decisionScript = attachedCrawler.getConfig().getDecisionScript();
-
-    var linksToCrawlUrlData = urlDataRepository.findNotVisitedPages(crawlerId, numberOfThreads);
-
-    while (!linksToCrawlUrlData.isEmpty() && keepExecution.get()) {
-      var invocations = new ArrayList<Callable<Boolean>>();
-      for (final var urlData : linksToCrawlUrlData) {
-        if (!keepExecution.get()) {
-          break;
-        }
-        var urlDataId = urlData.get_id();
-        var targetUrl = urlData.getUrl();
-        log.info("Crawling {}", targetUrl);
-        invocations.add(() -> {
-          urlDataRepository.updateStatus(urlDataId, UrlStatus.CRAWLING);
-          try {
-            var document = connect(targetUrl);
-            var urls = extractUrls(document);
-            var distinctUrls = urls.stream()
-                .distinct()
-                .map(NormalizationUtils::normalizeUrl)
-                .filter(Objects::nonNull)
-                .filter(url -> matchesWhiteList(url, whiteList))
-                .collect(toList());
-
-            for (var url : distinctUrls) {
-                UrlData newUrlData = UrlData.of(url, crawlerId);
-                urlDataRepository.add(newUrlData);
-            }
-
-            if (canExtractData(document, decisionScript)) {
-              var extractionDataMap = extractData(document, extractionScript);
-              var extraction = UrlExtraction.of(crawlerId, targetUrl, extractionDataMap);
-              urlExtractionRepository.addExtraction(extraction);
-              currentStats.incNumOfExtractions();
-            }
-
-            urlDataRepository.updateStatus(urlDataId, UrlStatus.CRAWLED);
-            currentStats.incPagesCrawled();
-            return true;
-          } catch (Exception e) {
-            urlDataRepository.updateStatus(urlDataId, UrlStatus.ERROR);
-            return false;
-          }
-        });
-      }
-
-      try {
-        executor.invokeAll(invocations);
-      } catch (InterruptedException e) {
-        log.info("Error executing threads in the crawler. <id: {}> " + attachedCrawler.get_id(), e);
-      }
-      crawlerProcessRepository.updateStats(crawlerId, currentStats);
-      linksToCrawlUrlData = urlDataRepository.findNotVisitedPages(crawlerId, numberOfThreads);
-    }
-
-    changeCrawlerStatus(CrawlerStatus.FINISHED);
-  }
+  public abstract void crawlerLoop();
 
   @Override
-  public synchronized CrawlerStatus getStatus() {
+  public final synchronized CrawlerStatus getStatus() {
     return attachedCrawler.getStatus();
   }
 
   @Override
-  public String getCrawlerId() {
+  public final String getCrawlerId() {
     return attachedCrawler.get_id();
   }
 
   /**
    * Private methods
    **/
-  private synchronized void changeCrawlerStatus(CrawlerStatus status) {
+  protected synchronized void changeCrawlerStatus(CrawlerStatus status) {
     this.attachedCrawler.setStatus(status);
     crawlerProcessRepository.updateCrawlerStatus(attachedCrawler.get_id(), status);
   }
 
-  private void loadCrawlerStats(CrawlerStats stats) {
+  protected void loadCrawlerStats(CrawlerStats stats) {
     currentStats.setNumOfExecutions(stats.getNumOfExecutions());
     currentStats.setNumOfExtractions(stats.getNumOfExtractions());
     currentStats.setPagesCrawled(stats.getPagesCrawled());
   }
 
-  private boolean matchesWhiteList(String url, List<String> whiteList) {
+  protected boolean matchesWhiteList(String url, List<String> whiteList) {
     for (var keyword : whiteList) {
       if (url.contains(keyword)) {
         return true;
@@ -225,7 +158,7 @@ public class CrawlerProcess implements CrawlerProcessSpec {
     return false;
   }
 
-  private Object evaluateXpath(String xpath, Document document) {
+  protected Object evaluateXpath(String xpath, Document document) {
     return Xsoup.compile(xpath).evaluate(document).get();
   }
 }
