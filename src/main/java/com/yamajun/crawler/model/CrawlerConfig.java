@@ -17,6 +17,8 @@ public class CrawlerConfig {
   private int numOfThreads = 1;
   private long threadsDelayMs = 0;
 
+  private List<String> regexToCrawl;
+
   private List<String> whiteListContains;
 
   private GroovyScript decisionScript;

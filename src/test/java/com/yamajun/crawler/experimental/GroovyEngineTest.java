@@ -2,6 +2,7 @@ package com.yamajun.crawler.experimental;
 
 import static org.junit.Assert.*;
 
+import com.yamajun.crawler.model.Crawler;
 import groovy.lang.Binding;
 import groovy.lang.GroovyShell;
 import java.io.IOException;

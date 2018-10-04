@@ -10,8 +10,12 @@ public interface UrlDataRepository {
 
   UrlData add(UrlData urlData);
 
+  List<UrlData> addAll(List<UrlData> urlDataList);
+
   UrlData updateStatus(String urlDataId, UrlStatus status);
 
   List<UrlData> findNotVisitedPages(String crawlerId, int numberOfPages);
+
+  UrlData findLatestByRegex(String regex, String crawlerId);
 
 }

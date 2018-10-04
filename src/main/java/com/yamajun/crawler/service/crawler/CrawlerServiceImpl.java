@@ -7,15 +7,21 @@ import com.yamajun.crawler.process.CrawlerProcessFactory;
 import com.yamajun.crawler.repository.CrawlerRepository;
 import com.yamajun.crawler.service.process.CrawlerProcessContainer;
 import java.util.List;
+import javax.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationListener;
 import org.springframework.context.event.ContextRefreshedEvent;
 import org.springframework.stereotype.Service;
 
 @Slf4j
 @Service
-public class CrawlerServiceImpl implements CrawlerService, ApplicationListener<ContextRefreshedEvent> {
+public class CrawlerServiceImpl implements CrawlerService {
+
+  @Value("${crawlOnstart}")
+  private boolean crawlOnstart;
+
 
   private final CrawlerProcessContainer container;
   private final CrawlerRepository crawlerRepository;
@@ -73,14 +79,16 @@ public class CrawlerServiceImpl implements CrawlerService, ApplicationListener<C
 
   }
 
-  @Override
-  public void onApplicationEvent(ContextRefreshedEvent contextRefreshedEvent) {
-    var crawlers = crawlerRepository.findAll();
-    for(var crawler : crawlers){
-      var crawlerProcess = crawlerProcessFactory.createProcess(crawler);
-      log.info("Loading crawler. <_id:{}>", crawler.get_id());
-      container.loadAndStartProcess(crawlerProcess);
-      log.info("Loaded crawler. <_id:{}>", crawler.get_id());
+  @PostConstruct
+  public void onApplicationEvent() {
+    if(crawlOnstart){
+      var crawlers = crawlerRepository.findAll();
+      for(var crawler : crawlers){
+        var crawlerProcess = crawlerProcessFactory.createProcess(crawler);
+        log.info("Loading crawler. <_id:{}>", crawler.get_id());
+        container.loadAndStartProcess(crawlerProcess);
+        log.info("Loaded crawler. <_id:{}>", crawler.get_id());
+      }
     }
   }
 }

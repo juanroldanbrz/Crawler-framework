@@ -1,39 +1,25 @@
 package com.yamajun.crawler.process;
 
-import static java.util.stream.Collectors.toList;
-
+import com.yamajun.crawler.exception.ConnectionException;
 import com.yamajun.crawler.experimental.GroovyScript;
 import com.yamajun.crawler.experimental.GroovyScriptExecutor;
 import com.yamajun.crawler.model.Crawler;
 import com.yamajun.crawler.model.CrawlerStats;
-import com.yamajun.crawler.model.UrlData;
-import com.yamajun.crawler.model.UrlExtraction;
 import com.yamajun.crawler.model.status.CrawlerStatus;
-import com.yamajun.crawler.model.status.UrlStatus;
-import com.yamajun.crawler.exception.ConnectionException;
 import com.yamajun.crawler.process.model.SynchronizedCrawlerStats;
 import com.yamajun.crawler.repository.CrawlerProcessRepository;
 import com.yamajun.crawler.repository.UrlDataRepository;
 import com.yamajun.crawler.repository.UrlExtractionRepository;
-import com.yamajun.crawler.utils.NormalizationUtils;
-import com.yamajun.crawler.xsoup.Xsoup;
-import groovy.lang.GroovyShell;
-import io.vavr.control.Try;
 import java.io.IOException;
-import java.net.URL;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 import lombok.extern.slf4j.Slf4j;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
-import org.springframework.scheduling.annotation.Async;
 
 @Slf4j
 public abstract class CrawlerProcess implements CrawlerProcessSpec {
@@ -49,6 +35,7 @@ public abstract class CrawlerProcess implements CrawlerProcessSpec {
   protected final GroovyScriptExecutor scriptExecutor;
 
   protected final SynchronizedCrawlerStats currentStats;
+  protected final String crawlerId;
 
   protected final AtomicBoolean keepExecution;
 
@@ -57,6 +44,7 @@ public abstract class CrawlerProcess implements CrawlerProcessSpec {
       UrlExtractionRepository urlExtractionRepository,
       CrawlerProcessRepository crawlerProcessRepository) {
     this.attachedCrawler = attachedCrawler;
+    this.crawlerId = attachedCrawler.get_id();
     executor = Executors.newFixedThreadPool(attachedCrawler.getConfig().getNumOfThreads());
     this.urlDataRepository = urlDataRepository;
     this.urlExtractionRepository = urlExtractionRepository;
@@ -156,9 +144,5 @@ public abstract class CrawlerProcess implements CrawlerProcessSpec {
     }
 
     return false;
-  }
-
-  protected Object evaluateXpath(String xpath, Document document) {
-    return Xsoup.compile(xpath).evaluate(document).get();
   }
 }

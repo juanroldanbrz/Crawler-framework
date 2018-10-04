@@ -24,7 +24,15 @@ public class CrawlerProcessFactory {
   }
 
   public CrawlerProcess createProcess(Crawler crawler) {
-    return new CrawlerProcess(crawler, urlDataRepository, urlExtractionRepository, crawlerProcessRepository);
+    switch (crawler.getType()) {
+      case BRUTE_FORCE:
+        return new CrawlerProcessBruteForce(crawler, urlDataRepository, urlExtractionRepository,
+            crawlerProcessRepository);
+      case CUSTOM_PAGES:
+        return new CrawlerProcessCustom(crawler, urlDataRepository, urlExtractionRepository, crawlerProcessRepository);
+      default:
+        return null;
+    }
   }
 
 }
